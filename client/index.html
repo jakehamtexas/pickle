@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<head>
+  <title>Pickle!</title>
+  <link
+    href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"
+    rel="stylesheet"
+  />
+  <link
+    href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css"
+    rel="stylesheet"
+  />
+  <link
+    href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css"
+    rel="stylesheet"
+  />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"
+  />
+</head>
+<body>
+  <h1>PICKLE</h1>
+  <div id="app">
+    <v-app>
+      <v-main>
+        <v-container>
+          <label for="uuid">UUID:</label>
+          <span id="uuid">{{uuid}}</span>
+          <label for="your-name">What's your name?</label>
+          <input type="text" id="your-name" v-model="name" />
+          <label for="color">Color: </label>
+          <span id="color">{{color}}</span>
+          <label for="who-picked">Who Picked Last:</label>
+          <span id="who-picked">{{whoPickedLast}}</span>
+          <v-color-picker @input="send" :value="color"></v-color-picker
+        ></v-container>
+      </v-main>
+    </v-app>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+  <script>
+    new Vue({
+      el: "#app",
+      vuetify: new Vuetify(),
+      data: {
+        webSocket: null,
+        color: "",
+        whoPickedLast: "",
+        name: "",
+        uuid: "",
+      },
+      mounted() {
+        this.webSocket = new WebSocket("ws://localhost:8080");
+        this.webSocket.addEventListener("message", this.onMessage);
+      },
+      methods: {
+        send(hex) {
+          this.color = hex;
+          this.whoPickedLast = "You";
+          const payload = JSON.stringify({
+            color: hex,
+            whoPickedLast: this.name,
+            uuid: this.uuid,
+          });
+          if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN)
+            this.webSocket.send(payload);
+        },
+        onMessage(message) {
+          const { color, whoPickedLast, uuid } = JSON.parse(message.data);
+          if (uuid && !this.uuid) {
+            this.uuid = uuid;
+            return;
+          }
+          this.color = color;
+          this.whoPickedLast =
+            whoPickedLast && whoPickedLast.length ? whoPickedLast : "Unknown";
+        },
+      },
+    });
+  </script>
+</body>
